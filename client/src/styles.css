@@ -76,6 +76,7 @@ label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; colo
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 .error { color: var(--danger); }
+.field-error { color: var(--danger); font-size: 0.85rem; margin: 4px 0 0; }
 .success { color: var(--success); }
 .loader { text-align: center; color: var(--muted); padding: 40px; }
 
