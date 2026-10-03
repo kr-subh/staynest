@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Listing from '../models/Listing.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import generateToken from '../utils/generateToken.js';
 
@@ -8,6 +9,7 @@ const userResponse = (user) => ({
   email: user.email,
   role: user.role,
   avatar: user.avatar,
+  wishlist: user.wishlist || [],
   token: generateToken(user._id),
 });
 
@@ -50,4 +52,46 @@ export const login = asyncHandler(async (req, res) => {
 // GET /api/auth/me
 export const getMe = asyncHandler(async (req, res) => {
   res.json(req.user);
+});
+
+// POST /api/auth/wishlist/:id
+export const toggleWishlist = asyncHandler(async (req, res) => {
+  const listingId = req.params.id;
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  const index = user.wishlist.findIndex((id) => id.toString() === listingId);
+  let isWishlisted = false;
+
+  if (index > -1) {
+    user.wishlist.splice(index, 1);
+    isWishlisted = false;
+  } else {
+    user.wishlist.push(listingId);
+    isWishlisted = true;
+  }
+
+  await user.save();
+  res.json({ wishlist: user.wishlist, isWishlisted });
+});
+
+// GET /api/auth/wishlist
+export const getWishlist = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).populate({
+    path: 'wishlist',
+    match: { isActive: true },
+  });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  // Filter out any null entries (e.g. deleted or deactivated listings)
+  const validWishlist = (user.wishlist || []).filter(Boolean);
+  res.json(validWishlist);
 });

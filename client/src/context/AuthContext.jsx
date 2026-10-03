@@ -32,8 +32,30 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const toggleWishlist = async (listingId) => {
+    const { data } = await api.post(`/auth/wishlist/${listingId}`);
+    if (user && data.wishlist) {
+      saveUser({ ...user, wishlist: data.wishlist });
+    }
+    return data;
+  };
+
+  const isWishlisted = (listingId) => {
+    return Array.isArray(user?.wishlist) && user.wishlist.some((id) => String(id) === String(listingId));
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isHost: user?.role === 'host' }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        logout,
+        isHost: user?.role === 'host',
+        toggleWishlist,
+        isWishlisted,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
