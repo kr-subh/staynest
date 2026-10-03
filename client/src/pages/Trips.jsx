@@ -8,6 +8,8 @@ export default function Trips() {
   const location = useLocation();
   const [bookings, setBookings] = useState(null);
   const [error, setError] = useState('');
+  const [tripToCancel, setTripToCancel] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const load = () =>
     api
@@ -19,13 +21,27 @@ export default function Trips() {
     load();
   }, []);
 
-  // TODO: ask for confirmation before cancelling.
-  const cancel = async (id) => {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && tripToCancel && !cancelling) {
+        setTripToCancel(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [tripToCancel, cancelling]);
+
+  const confirmCancel = async (id) => {
     try {
+      setCancelling(true);
       await api.patch(`/bookings/${id}/cancel`);
+      setTripToCancel(null);
       load();
     } catch (err) {
       setError(getErrorMessage(err));
+      setTripToCancel(null);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -54,12 +70,46 @@ export default function Trips() {
               <span className={`status status-${b.status}`}>{b.status}</span>
               <strong>{formatINR(b.totalPrice)}</strong>
               {['pending', 'confirmed'].includes(b.status) && (
-                <button className="btn btn-danger" onClick={() => cancel(b._id)}>Cancel</button>
+                <button className="btn btn-danger" onClick={() => setTripToCancel(b)}>Cancel</button>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      {tripToCancel && (
+        <div className="modal-backdrop" onClick={() => !cancelling && setTripToCancel(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>Cancel Trip</h3>
+            <p>
+              Are you sure you want to cancel your stay at{' '}
+              <strong>{tripToCancel.listing?.title}</strong>?
+            </p>
+            <p className="muted small">
+              {formatDate(tripToCancel.checkIn)} → {formatDate(tripToCancel.checkOut)} ·{' '}
+              {tripToCancel.nights} night{tripToCancel.nights > 1 ? 's' : ''}
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => setTripToCancel(null)}
+                disabled={cancelling}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-danger"
+                onClick={() => confirmCancel(tripToCancel._id)}
+                disabled={cancelling}
+              >
+                {cancelling ? 'Cancelling...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
