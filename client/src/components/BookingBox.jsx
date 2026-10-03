@@ -15,7 +15,22 @@ export default function BookingBox({ listing }) {
   const total = nights * listing.pricePerNight;
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
-  // TODO: the date inputs allow past dates - set a `min` attribute (see issue tracker).
+  const formatCalendarDate = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const addCalendarDays = (dateStr, days = 1) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const next = new Date(y, m - 1, d + days);
+    return formatCalendarDate(next);
+  };
+
+  const today = formatCalendarDate(new Date());
+  const minCheckOut = form.checkIn ? addCalendarDays(form.checkIn, 1) : addCalendarDays(today, 1);
+
   const book = async (e) => {
     e.preventDefault();
     if (!user) return navigate('/login', { state: { from: `/stays/${listing._id}` } });
@@ -44,11 +59,23 @@ export default function BookingBox({ listing }) {
       <div className="row">
         <label className="grow">
           Check-in
-          <input type="date" required value={form.checkIn} onChange={set('checkIn')} />
+          <input
+            type="date"
+            required
+            min={today}
+            value={form.checkIn}
+            onChange={set('checkIn')}
+          />
         </label>
         <label className="grow">
           Check-out
-          <input type="date" required value={form.checkOut} onChange={set('checkOut')} />
+          <input
+            type="date"
+            required
+            min={minCheckOut}
+            value={form.checkOut}
+            onChange={set('checkOut')}
+          />
         </label>
       </div>
       <label>
